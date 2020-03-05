@@ -1,7 +1,7 @@
 from django.core.cache import caches
 from django.core.cache.backends.locmem import LocMemCache
 from django.core.exceptions import ImproperlyConfigured
-from django.db import OperationalError, ProgrammingError
+from django.db import IntegrityError, OperationalError, ProgrammingError
 from django.db.models.signals import post_save
 
 from .. import Backend
@@ -94,7 +94,10 @@ class DatabaseBackend(Backend):
             return
         except self._model.DoesNotExist:
             old_value = None
-            constance = queryset.create(key=key, value=value)
+            try:
+                constance = queryset.create(key=key, value=value)
+            except IntegrityError as error:
+                constance = queryset.get(key=key)
         else:
             old_value = constance.value
             constance.value = value
